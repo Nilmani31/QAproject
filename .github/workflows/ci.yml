@@ -22,4 +22,4 @@ jobs:
         run: mvn test
 
       - name: Display test results
-        run: cat target/surefire-reports/*.txt
+        run: cat target/surefire-reports/*.txt || true
