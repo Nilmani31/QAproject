@@ -22,7 +22,7 @@ jobs:
         run: mvn test || true   # Run tests but don't fail pipeline if they fail
 
       - name: Upload Cucumber Report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: cucumber-report
           path: target/cucumber-report.html
