@@ -37,14 +37,10 @@ jobs:
           sudo install -o root -g root -m 644 microsoft.gpg /etc/apt/trusted.gpg.d/
           sudo sh -c 'echo "deb [arch=amd64] https://packages.microsoft.com/repos/edge stable main" > /etc/apt/sources.list.d/microsoft-edge.list'
           sudo apt update
-          sudo apt install -y microsoft-edge-stable
-          EDGE_VERSION=$(microsoft-edge --version | grep -oP '\d+\.\d+\.\d+\.\d+')
-          wget https://msedgedriver.azureedge.net/$EDGE_VERSION/edgedriver_linux64.zip
-          unzip edgedriver_linux64.zip
-          sudo mv msedgedriver /usr/local/bin/
-          sudo chmod +x /usr/local/bin/
+          sudo apt install -y microsoft-edge-stable msedgedriver
           microsoft-edge --version
           msedgedriver --version
+
 
       - name: Build with Maven
         run: mvn clean install -DskipTests
