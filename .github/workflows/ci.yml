@@ -29,24 +29,32 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      # Wait until MySQL is ready
       - name: Wait for MySQL
         run: |
+          sudo apt-get update
           sudo apt-get install -y mysql-client
           until mysql -h 127.0.0.1 -P 3306 -uroot -proot -e "SHOW DATABASES;" ; do
             echo "⏳ Waiting for MySQL..."
             sleep 5
           done
 
+      # Create your local user in MySQL
+      - name: Create DB User
+        run: |
+          mysql -h 127.0.0.1 -P 3306 -uroot -proot -e "CREATE USER 'taskuser'@'%' IDENTIFIED BY 'password123';"
+          mysql -h 127.0.0.1 -P 3306 -uroot -proot -e "GRANT ALL PRIVILEGES ON taskmanager_db.* TO 'taskuser'@'%';"
+          mysql -h 127.0.0.1 -P 3306 -uroot -proot -e "FLUSH PRIVILEGES;"
+
+      # Build project, skip tests first
       - name: Build with Maven (skip tests)
         run: mvn clean install -DskipTests
 
+      # Run Unit & API Tests
       - name: Run Unit & API Tests
-        env:
-          SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/taskmanager_db
-          SPRING_DATASOURCE_USERNAME: root
-          SPRING_DATASOURCE_PASSWORD: root
         run: mvn test
 
+      # Upload Cucumber Report (if generated)
       - name: Upload Cucumber Report
         if: always()
         uses: actions/upload-artifact@v4
