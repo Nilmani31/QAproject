@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     services:
       mysql:
@@ -31,28 +31,30 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install Edge and EdgeDriver
+      - name: Install Microsoft Edge & EdgeDriver
         run: |
-          choco install microsoft-edge -y
-          choco install microsoft-edgedriver -y
-          refreshenv
+          curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
+          sudo install -o root -g root -m 644 microsoft.gpg /etc/apt/trusted.gpg.d/
+          sudo sh -c 'echo "deb [arch=amd64] https://packages.microsoft.com/repos/edge stable main" > /etc/apt/sources.list.d/microsoft-edge.list'
+          sudo apt update
+          sudo apt install -y microsoft-edge-stable
+          EDGE_VERSION=$(microsoft-edge --version | grep -oP '\d+\.\d+\.\d+\.\d+')
+          wget https://msedgedriver.azureedge.net/$EDGE_VERSION/edgedriver_linux64.zip
+          unzip edgedriver_linux64.zip
+          sudo mv msedgedriver /usr/local/bin/
+          sudo chmod +x /usr/local/bin/
+          microsoft-edge --version
+          msedgedriver --version
 
       - name: Build with Maven
         run: mvn clean install -DskipTests
 
       - name: Wait for MySQL to be ready
         run: |
-          powershell -Command "
-          $ready = $false
-          while (-not $ready) {
-              try {
-                  mysqladmin ping -h 127.0.0.1 -u taskuser -ppassword123 | Out-Null
-                  $ready = $true
-              } catch {
-                  Write-Host 'Waiting for MySQL...'
-                  Start-Sleep -Seconds 5
-              }
-          }"
+          until mysqladmin ping -h 127.0.0.1 -u taskuser -ppassword123 --silent; do
+            echo "Waiting for MySQL..."
+            sleep 5
+          done
 
       - name: Run Unit & UI Tests
         run: mvn test
