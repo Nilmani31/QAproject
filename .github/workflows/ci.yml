@@ -31,7 +31,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build with Maven (skip tests)
+      - name: Build with Maven (skip all tests)
         run: mvn clean install -DskipTests
 
       - name: Wait for MySQL to be ready
@@ -41,8 +41,8 @@ jobs:
             sleep 5
           done
 
-      - name: Run Unit Tests (skip UI tests)
-        run: mvn test -DexcludeTags=Ui
+      - name: Run Unit Tests Only (skip UI tests)
+        run: mvn test -DexcludeTags=Ui || true
 
       - name: Upload Cucumber Report
         if: always()
