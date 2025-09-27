@@ -8,7 +8,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 
@@ -26,8 +25,8 @@ public class TaskApiController {
 
     @PostMapping
     public ResponseEntity<Map<String, String>> addTask(@RequestBody Task task) {
-        // For testing, assign a default user
-        User user = userRepository.findByUsername("chamsha")
+        // Use the test user "Kaveesha"
+        User user = userRepository.findByUsername("Kaveesha")
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         taskService.saveTask(task, user);
@@ -35,12 +34,12 @@ public class TaskApiController {
                 .body(Map.of("message", "Task created successfully"));
     }
 
-//add for git
     @GetMapping
     public List<Task> getTasks() {
-        User user = userRepository.findByUsername("chamsha")
+        // Use the test user "Kaveesha"
+        User user = userRepository.findByUsername("Kaveesha")
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
         return taskService.getTasksByUser(user);
     }
-
 }

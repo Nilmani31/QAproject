@@ -22,10 +22,10 @@ public class LoginUITest {
 
         try {
             // Open login page
-            driver.get("http://localhost:8080/login");
+            driver.get("http://localhost:8080/users/login");
 
             // Fill in username and password
-            driver.findElement(By.name("username")).sendKeys("chamsha");
+            driver.findElement(By.name("username")).sendKeys("Kaveesha");
             driver.findElement(By.name("password")).sendKeys("1234");
 
             // Click login button

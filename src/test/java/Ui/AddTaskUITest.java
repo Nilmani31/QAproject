@@ -20,10 +20,10 @@ public class AddTaskUITest {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
 
         try {
-            driver.get("http://localhost:8080/login");
+            driver.get("http://localhost:8080/users/login");
 
             // Login first
-            wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("username"))).sendKeys("chamsha");
+            wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("username"))).sendKeys("Kaveesha");
             wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("password"))).sendKeys("1234");
             wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']"))).click();
 

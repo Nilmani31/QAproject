@@ -9,6 +9,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 @Service
 @Validated
@@ -19,10 +21,19 @@ public class TaskService {
     public TaskService(TaskRepository taskRepository) {
         this.taskRepository = taskRepository;
     }
-    public Task saveTask(Task task, User user) {
+   /* public Task saveTask(Task task, User user) {
         task.setUser(user); // ✅ attach the user
         return taskRepository.save(task);
-    }
+    }*/
+   public Task saveTask(Task task, User user) {
+       return Optional.ofNullable(task)
+               .map(t -> {
+                   t.setUser(Objects.requireNonNull(user, "User cannot be null"));
+                   return taskRepository.save(t);
+               })
+               .orElseThrow(() -> new IllegalArgumentException("Task cannot be null"));
+   }
+
 
     public Task createTask(Task task, User user) {
         task.setUser(user);

@@ -6,6 +6,9 @@ import com.example.taskmanager.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.util.Optional;
 
@@ -19,27 +22,38 @@ public class UserServiceTest {
 
     @BeforeEach
     void setUp() {
-        userRepo = mock(UserRepository.class); // create mock
-        userService = new UserService(userRepo); // inject mock
+        userRepo = mock(UserRepository.class);
+        userService = new UserService(userRepo);
     }
 
     @Test
-    void testAuthenticateSuccess() {
+    void testLoadUserByUsernameSuccess() {
+        // Use proper username without quotes
         User testUser = new User();
-        testUser.setUsername("chamsha");
-        testUser.setPassword("1234");
+        testUser.setUsername("Kaveesha");
 
-        when(userRepo.findByUsername("chamsha")).thenReturn(Optional.of(testUser));
+        // Hash password with BCrypt (like real service)
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        testUser.setPassword(encoder.encode("1234"));
 
-        Optional<User> user = userService.authenticate("chamsha", "1234");
-        assertTrue(user.isPresent(), "User should be authenticated");
+        when(userRepo.findByUsername("Kaveesha")).thenReturn(Optional.of(testUser));
+
+        UserDetails userDetails = userService.loadUserByUsername("Kaveesha");
+
+        assertEquals("Kaveesha", userDetails.getUsername());
+        assertTrue(userDetails.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("USER")));
+
+        // Optionally verify password matches
+        assertTrue(encoder.matches("1234", userDetails.getPassword()));
     }
 
+
     @Test
-    void testAuthenticateFail() {
+    void testLoadUserByUsernameFail() {
         when(userRepo.findByUsername("wrong")).thenReturn(Optional.empty());
 
-        Optional<User> user = userService.authenticate("wrong", "pass");
-        assertTrue(user.isEmpty(), "Invalid credentials should fail");
+        assertThrows(UsernameNotFoundException.class,
+                () -> userService.loadUserByUsername("wrong"));
     }
 }

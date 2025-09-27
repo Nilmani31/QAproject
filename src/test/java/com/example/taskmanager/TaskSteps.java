@@ -7,6 +7,7 @@ import com.example.taskmanager.model.Task;
 import com.example.taskmanager.service.UserService;
 import com.example.taskmanager.service.TaskService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import com.example.taskmanager.repository.UserRepository;
 
 import java.util.Optional;
@@ -38,9 +39,13 @@ public class TaskSteps {
 
     @When("the user logs in with username {string} and password {string}")
     public void user_logs_in(String username, String password) {
-        Optional<User> user = userService.authenticate(username, password);
-        assertTrue(user.isPresent());
-        loggedUser = user.get();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        assertTrue(encoder.matches(password, user.getPassword()), "Password should match");
+
+        loggedUser = user;
     }
 
     @When("adds a task with title {string} and description {string}")
