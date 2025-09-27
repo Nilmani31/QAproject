@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     services:
       mysql:
@@ -17,7 +17,7 @@ jobs:
         ports:
           - 3306:3306
         options: >-
-          --health-cmd "mysqladmin ping --silent"
+          --health-cmd "mysqladmin ping --silent -u taskuser -ppassword123"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -31,35 +31,34 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install Google Chrome and ChromeDriver
+      - name: Install Edge and EdgeDriver
         run: |
-          sudo apt update
-          sudo apt install -y wget unzip xvfb libxi6 libgconf-2-4 fonts-liberation libappindicator3-1 libnss3 libxss1 libasound2 libatk-bridge2.0-0 libgtk-3-0
-          wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-          sudo dpkg -i google-chrome-stable_current_amd64.deb
-          sudo apt-get install -f -y
-          CHROME_VERSION=$(google-chrome --version | grep -oP '\d+')
-          wget https://chromedriver.storage.googleapis.com/${CHROME_VERSION}/chromedriver_linux64.zip
-          unzip chromedriver_linux64.zip
-          sudo mv chromedriver /usr/local/bin/
-          sudo chmod +x /usr/local/bin/
-          google-chrome --version
-          chromedriver --version
+          choco install microsoft-edge -y
+          choco install microsoft-edgedriver -y
+          refreshenv
 
       - name: Build with Maven
         run: mvn clean install -DskipTests
 
       - name: Wait for MySQL to be ready
         run: |
-          until mysqladmin ping -h "127.0.0.1" --silent; do
-            echo "Waiting for MySQL..."
-            sleep 5
-          done
+          powershell -Command "
+          $ready = $false
+          while (-not $ready) {
+              try {
+                  mysqladmin ping -h 127.0.0.1 -u taskuser -ppassword123 | Out-Null
+                  $ready = $true
+              } catch {
+                  Write-Host 'Waiting for MySQL...'
+                  Start-Sleep -Seconds 5
+              }
+          }"
 
-      - name: Run Unit & API Tests
-        run: mvn test || true
+      - name: Run Unit & UI Tests
+        run: mvn test
 
       - name: Upload Cucumber Report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: cucumber-report
