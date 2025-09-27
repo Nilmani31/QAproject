@@ -29,32 +29,51 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # Wait until MySQL is ready
+      # Wait for MySQL to be ready
       - name: Wait for MySQL
         run: |
           sudo apt-get update
-          sudo apt-get install -y mysql-client
+          sudo apt-get install -y mysql-client unzip wget
           until mysql -h 127.0.0.1 -P 3306 -uroot -proot -e "SHOW DATABASES;" ; do
             echo "⏳ Waiting for MySQL..."
             sleep 5
           done
 
-      # Create your local user in MySQL
+      # Create local DB user
       - name: Create DB User
         run: |
           mysql -h 127.0.0.1 -P 3306 -uroot -proot -e "CREATE USER 'taskuser'@'%' IDENTIFIED BY 'password123';"
           mysql -h 127.0.0.1 -P 3306 -uroot -proot -e "GRANT ALL PRIVILEGES ON taskmanager_db.* TO 'taskuser'@'%';"
           mysql -h 127.0.0.1 -P 3306 -uroot -proot -e "FLUSH PRIVILEGES;"
 
+      # Install Microsoft Edge browser
+      - name: Install Microsoft Edge
+        run: |
+          curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
+          sudo install -o root -g root -m 644 microsoft.gpg /etc/apt/trusted.gpg.d/
+          sudo sh -c 'echo "deb [arch=amd64] https://packages.microsoft.com/repos/edge stable main" > /etc/apt/sources.list.d/microsoft-edge.list'
+          sudo apt update
+          sudo apt install -y microsoft-edge-stable
+
+      # Install EdgeDriver
+      - name: Install EdgeDriver
+        run: |
+          EDGE_VERSION=$(microsoft-edge --version | grep -oP '\d+\.\d+\.\d+\.\d+')
+          echo "Installing EdgeDriver version $EDGE_VERSION"
+          wget https://msedgedriver.azureedge.net/$EDGE_VERSION/edgedriver_linux64.zip
+          unzip edgedriver_linux64.zip
+          sudo mv msedgedriver /usr/local/bin/
+          sudo chmod +x /usr/local/bin/msedgedriver
+
       # Build project, skip tests first
       - name: Build with Maven (skip tests)
         run: mvn clean install -DskipTests
 
       # Run Unit & API Tests
-      - name: Run Unit & API Tests
+      - name: Run Unit & UI Tests
         run: mvn test
 
-      # Upload Cucumber Report (if generated)
+      # Upload Cucumber Report
       - name: Upload Cucumber Report
         if: always()
         uses: actions/upload-artifact@v4
