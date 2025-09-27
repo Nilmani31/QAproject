@@ -3,7 +3,6 @@ package com.example.taskmanager.service;
 import com.example.taskmanager.model.Task;
 import com.example.taskmanager.model.User;
 import com.example.taskmanager.repository.TaskRepository;
-import jakarta.validation.Valid;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -21,10 +20,7 @@ public class TaskService {
     public TaskService(TaskRepository taskRepository) {
         this.taskRepository = taskRepository;
     }
-   /* public Task saveTask(Task task, User user) {
-        task.setUser(user); // ✅ attach the user
-        return taskRepository.save(task);
-    }*/
+
    public Task saveTask(Task task, User user) {
        return Optional.ofNullable(task)
                .map(t -> {
@@ -34,11 +30,6 @@ public class TaskService {
                .orElseThrow(() -> new IllegalArgumentException("Task cannot be null"));
    }
 
-
-    public Task createTask(Task task, User user) {
-        task.setUser(user);
-        return taskRepository.save(task); // ✅ Correct
-    }
 
     public List<Task> getAllTasks() {
         return taskRepository.findAll();

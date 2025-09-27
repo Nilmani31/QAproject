@@ -8,6 +8,7 @@ class TaskmanagerApplicationTests {
 
 	@Test
 	void contextLoads() {
+		// Noncompliant - method is empty
 	}
 
 }
