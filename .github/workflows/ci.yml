@@ -6,6 +6,22 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: taskmanager_db
+          MYSQL_USER: taskuser
+          MYSQL_PASSWORD: password123
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping --silent"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v3
 
@@ -15,11 +31,32 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Install Google Chrome and ChromeDriver
+        run: |
+          sudo apt update
+          sudo apt install -y wget unzip xvfb libxi6 libgconf-2-4
+          wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
+          CHROME_VERSION=$(google-chrome --version | grep -oP '\d+')
+          wget https://chromedriver.storage.googleapis.com/${CHROME_VERSION}/chromedriver_linux64.zip
+          unzip chromedriver_linux64.zip
+          sudo mv chromedriver /usr/local/bin/
+          sudo chmod +x /usr/local/bin/
+          google-chrome --version
+          chromedriver --version
+
       - name: Build with Maven
         run: mvn clean install -DskipTests
 
+      - name: Wait for MySQL to be ready
+        run: |
+          until mysqladmin ping -h "127.0.0.1" --silent; do
+            echo "Waiting for MySQL..."
+            sleep 5
+          done
+
       - name: Run Unit & API Tests
-        run: mvn test || true   # Run tests but don't fail pipeline if they fail
+        run: mvn test || true
 
       - name: Upload Cucumber Report
         uses: actions/upload-artifact@v4

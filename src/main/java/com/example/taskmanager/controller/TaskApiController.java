@@ -42,4 +42,10 @@ public class TaskApiController {
 
         return taskService.getTasksByUser(user);
     }
+    @GetMapping("/all")
+    public List<Task> getAllTasks() {
+        return taskService.getAllTasks();
+    }
+
+
 }

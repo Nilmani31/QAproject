@@ -53,6 +53,15 @@ public class TaskController {
             model.addAttribute("tasks", tasks);
             return "tasks";
         }
+        boolean exists = taskService.existsByTitleAndUser(task.getTitle(), user);
+        if (exists) {
+            // Add error message instead of saving duplicate
+            result.rejectValue("title", "duplicate", "Task already exists");
+            List<Task> tasks = taskService.getTasksByUser(user);
+            model.addAttribute("tasks", tasks);
+            return "tasks";  // return to page instead of redirect
+        }
+
 
         taskService.saveTask(task, user);
         return "redirect:/tasks";

@@ -62,4 +62,9 @@ public class TaskService {
 
         taskRepository.delete(task);
     }
+    public boolean existsByTitleAndUser(String title, User user) {
+        return taskRepository.existsByTitleAndUser(title, user);
+    }
+
+
 }

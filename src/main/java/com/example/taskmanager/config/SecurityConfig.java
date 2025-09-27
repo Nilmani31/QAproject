@@ -36,7 +36,7 @@ public class SecurityConfig {
 
         return http.build();
     }
-}*/
+}
 @Configuration
 public class SecurityConfig {
 
@@ -70,5 +70,41 @@ public class SecurityConfig {
 
         return http.build();
     }
-}
+}*/
 
+
+
+
+
+import org.springframework.security.config.Customizer;
+
+@Configuration
+public class SecurityConfig {
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/users/login", "/users/register", "/css/**", "/js/**","/api/**").permitAll()
+                        .anyRequest().authenticated()
+                )
+                .formLogin(form -> form
+                        .loginPage("/users/login")
+                        .loginProcessingUrl("/users/login")
+                        .defaultSuccessUrl("/tasks", true)
+                        .permitAll()
+                )
+                .logout(logout -> logout
+                        .logoutUrl("/logout")
+                        .logoutSuccessUrl("/users/login")
+                );
+
+        return http.build();
+    }
+}

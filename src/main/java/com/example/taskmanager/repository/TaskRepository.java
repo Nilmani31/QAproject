@@ -9,4 +9,7 @@ import java.util.List;
 public interface TaskRepository extends JpaRepository<Task, Long> {
     List<Task> findByUser(User user);
     void deleteById(Long id);
+    boolean existsByTitleAndUser(String title, User user);
+
 }
+
