@@ -12,4 +12,4 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     boolean existsByTitleAndUser(String title, User user);
 
 }
-
+//this help to intract with database  task table

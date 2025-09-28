@@ -29,8 +29,4 @@ public class Task {
 
     public Task() {}
 
-    public void setUser(User user) {
-        this.user = user;
-    }
-
 }
