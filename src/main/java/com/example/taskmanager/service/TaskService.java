@@ -1,5 +1,6 @@
 package com.example.taskmanager.service;
 
+import com.example.taskmanager.exception.UnauthorizedTaskAccessException;
 import com.example.taskmanager.model.Task;
 import com.example.taskmanager.model.User;
 import com.example.taskmanager.repository.TaskRepository;
@@ -8,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -37,18 +39,18 @@ public class TaskService {
 
     public Task getTaskById(Long id) {
         return taskRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Task not found with id: " + id));
+                .orElseThrow(() -> new NoSuchElementException("Task not found with id: " + id));
     }
 
     public List<Task> getTasksByUser(User user) {
         return taskRepository.findByUser(user);
     }
     public void deleteTask(Long id, User user) {
-        Task task = taskRepository.findById(id).orElseThrow(() -> new RuntimeException("Task not found"));
+        Task task = taskRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Task not found"));
 
         // Ensure task belongs to the logged-in user
         if (!task.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("You cannot delete this task");
+            throw new UnauthorizedTaskAccessException();
         }
 
         taskRepository.delete(task);
