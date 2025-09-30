@@ -49,7 +49,7 @@ public class AddTaskUITest {
         try {
             driver.get("http://localhost:8080/users/login");
 
-            // Login first
+            // Login
             wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("username"))).sendKeys("Kaveesha");
             wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("password"))).sendKeys("1234");
             wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']"))).click();
@@ -59,9 +59,13 @@ public class AddTaskUITest {
             wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("description"))).sendKeys("homework");
             wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']"))).click();
 
-            // Check page contains task
-            wait.until(ExpectedConditions.textToBePresentInElementLocated(By.tagName("body"), "Do Home"));
-            assertTrue(driver.getPageSource().contains("Do Home"));
+            // Wait for task list container
+            By taskList = By.cssSelector("ul.list-group"); // Use class instead of ID
+            wait.until(ExpectedConditions.textToBePresentInElementLocated(taskList, "Do Home"));
+
+            // Verify task is displayed
+            assertTrue(driver.findElement(taskList).getText().contains("Do Home"));
+
         } finally {
             if (driver != null) {
                 driver.quit();
@@ -69,10 +73,5 @@ public class AddTaskUITest {
         }
     }
 
-    @AfterEach
-    public void tearDown() {
-        if (driver != null) {
-            driver.quit();
-        }
-    }
+
 }
