@@ -54,14 +54,23 @@ jobs:
           
           # Insert test user directly into database
           mysql -h 127.0.0.1 -u taskuser -ppassword123 taskmanager_db -e "
-            INSERT IGNORE INTO users (username, password) VALUES ('Kaveesha', '1234');
+            INSERT IGNORE INTO users (username, password) VALUES ('Kaveesha', '$2a$10$tspwtWKvR8vrF17Ikz9Lqu4KvaWvH2YmVlOEOFY4yy0GPP0eRddty');
           " || echo "User might already exist"
 
       - name: Start Spring Boot application
         run: |
           mvn spring-boot:run &
           echo $! > spring-boot.pid
-          sleep 45
+          # Wait until login page is reachable
+          for i in {1..60}; do
+          if curl -s http://localhost:8080/users/login > /dev/null; then
+          echo "Spring Boot app is ready!"
+          break
+          fi
+          echo "Waiting for Spring Boot app..."
+          sleep 5
+          done
+
 
       - name: Check if app is running
         run: |
