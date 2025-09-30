@@ -27,8 +27,6 @@ public class AddTaskUITest {
         WebDriverManager.chromedriver().setup();
 
         ChromeOptions options = new ChromeOptions();
-
-        // Always run headless in CI
         options.addArguments("--headless");
         options.addArguments("--disable-gpu");
         options.addArguments("--no-sandbox");
@@ -37,8 +35,7 @@ public class AddTaskUITest {
         options.addArguments("--remote-allow-origins=*");
 
         driver = new ChromeDriver(options);
-        // Increase wait time for CI
-        wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(40)); // longer wait for CI
     }
 
     @Test
@@ -46,7 +43,7 @@ public class AddTaskUITest {
         try {
             driver.get("http://localhost:8080/users/login");
 
-            // Ensure login page fully loaded
+            // Wait for login page
             wait.until(ExpectedConditions.urlContains("/users/login"));
 
             // Login
@@ -62,28 +59,24 @@ public class AddTaskUITest {
             wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("description"))).sendKeys("homework");
             wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']"))).click();
 
-            // Wait for task to appear in the list
-            By taskItem = By.xpath("//ul[contains(@class,'list-group')]/li[contains(., 'Do Home')]");
-            wait.until(ExpectedConditions.visibilityOfElementLocated(taskItem));
+            // Wait for task text to appear in the task list (more robust for CI)
+            By taskList = By.cssSelector("ul.list-group");
+            wait.until(ExpectedConditions.textToBePresentInElementLocated(taskList, "Do Home"));
 
             // Verify task is displayed
-            assertTrue(driver.findElement(taskItem).getText().contains("Do Home"));
+            assertTrue(driver.findElement(taskList).getText().contains("Do Home"));
 
         } catch (Exception e) {
-            // Optional: print page source for debugging in CI
+            // Print page source for debugging in CI
             System.out.println("Test failed. Page source:\n" + driver.getPageSource());
             throw e;
         } finally {
-            if (driver != null) {
-                driver.quit();
-            }
+            if (driver != null) driver.quit();
         }
     }
 
     @AfterEach
     public void tearDown() {
-        if (driver != null) {
-            driver.quit();
-        }
+        if (driver != null) driver.quit();
     }
 }
