@@ -27,7 +27,7 @@ public class AddTaskUITest {
         WebDriverManager.chromedriver().setup();
 
         ChromeOptions options = new ChromeOptions();
-        options.addArguments("--headless");
+        options.addArguments("--headless=new"); // Updated headless mode
         options.addArguments("--disable-gpu");
         options.addArguments("--no-sandbox");
         options.addArguments("--disable-dev-shm-usage");
@@ -35,7 +35,7 @@ public class AddTaskUITest {
         options.addArguments("--remote-allow-origins=*");
 
         driver = new ChromeDriver(options);
-        wait = new WebDriverWait(driver, Duration.ofSeconds(40)); // Increase wait for CI
+        wait = new WebDriverWait(driver, Duration.ofSeconds(60)); // Increase timeout for CI/CD
     }
 
     @Test
@@ -43,7 +43,7 @@ public class AddTaskUITest {
         try {
             driver.get("http://localhost:8080/users/login");
 
-            // Ensure login page fully loaded
+            // Wait for login page
             wait.until(ExpectedConditions.urlContains("/users/login"));
 
             // Login
@@ -51,7 +51,7 @@ public class AddTaskUITest {
             wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("password"))).sendKeys("1234");
             wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']"))).click();
 
-            // Wait until redirected to tasks page
+            // Wait for redirect to tasks page
             wait.until(ExpectedConditions.urlMatches(".*tasks.*"));
 
             // Add a task
@@ -59,16 +59,12 @@ public class AddTaskUITest {
             wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("description"))).sendKeys("homework");
             wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']"))).click();
 
-            // Small sleep to ensure JS renders new task
-            Thread.sleep(1000);
-
-            // Wait for task to appear
-            By taskList = By.cssSelector("ul.list-group");
-            wait.until(ExpectedConditions.presenceOfElementLocated(taskList));
-            wait.until(driver -> driver.findElement(taskList).getText().contains("Do Home"));
+            // Wait for the task to appear using explicit wait for specific text
+            By taskLocator = By.xpath("//ul[@class='list-group']/li[contains(.,'Do Home')]");
+            wait.until(ExpectedConditions.visibilityOfElementLocated(taskLocator));
 
             // Verify
-            assertTrue(driver.findElement(taskList).getText().contains("Do Home"));
+            assertTrue(driver.findElement(taskLocator).getText().contains("Do Home"));
 
         } catch (Exception e) {
             System.out.println("Test failed. Page source:\n" + driver.getPageSource());
