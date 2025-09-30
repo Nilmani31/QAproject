@@ -27,48 +27,52 @@ public class AddTaskUITest {
         WebDriverManager.chromedriver().setup();
 
         ChromeOptions options = new ChromeOptions();
-        options.addArguments("--headless=new"); // Updated headless mode
-        options.addArguments("--disable-gpu");
-        options.addArguments("--no-sandbox");
-        options.addArguments("--disable-dev-shm-usage");
-        options.addArguments("--window-size=1920,1080");
+
+        // Headless mode for CI or local testing
+        if (System.getenv("CI") != null) {
+            options.addArguments("--headless");
+            options.addArguments("--disable-gpu");
+            options.addArguments("--no-sandbox");
+            options.addArguments("--disable-dev-shm-usage");
+            options.addArguments("--window-size=1920,1080");
+        }
+
         options.addArguments("--remote-allow-origins=*");
 
         driver = new ChromeDriver(options);
-        wait = new WebDriverWait(driver, Duration.ofSeconds(60)); // Increase timeout for CI/CD
+        wait = new WebDriverWait(driver, Duration.ofSeconds(20)); // Increased wait for slow CI
     }
 
     @Test
     public void testAddTask() {
         try {
+            // Open login page
             driver.get("http://localhost:8080/users/login");
-
-            // Wait for login page
-            wait.until(ExpectedConditions.urlContains("/users/login"));
 
             // Login
             wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("username"))).sendKeys("Kaveesha");
             wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("password"))).sendKeys("1234");
             wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']"))).click();
 
-            // Wait for redirect to tasks page
-            wait.until(ExpectedConditions.urlMatches(".*tasks.*"));
+            // Wait until redirected to tasks page
+            wait.until(ExpectedConditions.urlContains("/tasks"));
 
             // Add a task
             wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("title"))).sendKeys("Do Home");
             wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("description"))).sendKeys("homework");
             wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']"))).click();
 
-            // Wait for the task to appear using explicit wait for specific text
+            // Wait for the new task to appear in the list
             By taskLocator = By.xpath("//ul[@class='list-group']/li[contains(.,'Do Home')]");
             wait.until(ExpectedConditions.visibilityOfElementLocated(taskLocator));
 
             // Verify
             assertTrue(driver.findElement(taskLocator).getText().contains("Do Home"));
 
-        } catch (Exception e) {
-            System.out.println("Test failed. Page source:\n" + driver.getPageSource());
-            throw new RuntimeException(e);
+        } finally {
+            if (driver != null) {
+                driver.quit();
+            }
         }
     }
 
