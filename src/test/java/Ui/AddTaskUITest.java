@@ -24,24 +24,21 @@ public class AddTaskUITest {
 
     @BeforeEach
     public void setUp() {
-        // Use Chrome instead of Edge
         WebDriverManager.chromedriver().setup();
 
         ChromeOptions options = new ChromeOptions();
 
-        // Run in headless mode in CI environment
-        if (System.getenv("CI") != null || System.getProperty("headless") != null) {
-            options.addArguments("--headless");
-            options.addArguments("--disable-gpu");
-            options.addArguments("--no-sandbox");
-            options.addArguments("--disable-dev-shm-usage");
-            options.addArguments("--window-size=1920,1080");
-        }
-
+        // Always run headless in CI
+        options.addArguments("--headless");
+        options.addArguments("--disable-gpu");
+        options.addArguments("--no-sandbox");
+        options.addArguments("--disable-dev-shm-usage");
+        options.addArguments("--window-size=1920,1080");
         options.addArguments("--remote-allow-origins=*");
 
         driver = new ChromeDriver(options);
-        wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        // Increase wait time for CI
+        wait = new WebDriverWait(driver, Duration.ofSeconds(20));
     }
 
     @Test
@@ -49,23 +46,33 @@ public class AddTaskUITest {
         try {
             driver.get("http://localhost:8080/users/login");
 
+            // Ensure login page fully loaded
+            wait.until(ExpectedConditions.urlContains("/users/login"));
+
             // Login
             wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("username"))).sendKeys("Kaveesha");
             wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("password"))).sendKeys("1234");
             wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']"))).click();
+
+            // Wait until redirected to task page
+            wait.until(ExpectedConditions.urlMatches(".*tasks.*"));
 
             // Add a task
             wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("title"))).sendKeys("Do Home");
             wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("description"))).sendKeys("homework");
             wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']"))).click();
 
-            // Wait for task list container
-            By taskList = By.cssSelector("ul.list-group"); // Use class instead of ID
-            wait.until(ExpectedConditions.textToBePresentInElementLocated(taskList, "Do Home"));
+            // Wait for task to appear in the list
+            By taskItem = By.xpath("//ul[contains(@class,'list-group')]/li[contains(., 'Do Home')]");
+            wait.until(ExpectedConditions.visibilityOfElementLocated(taskItem));
 
             // Verify task is displayed
-            assertTrue(driver.findElement(taskList).getText().contains("Do Home"));
+            assertTrue(driver.findElement(taskItem).getText().contains("Do Home"));
 
+        } catch (Exception e) {
+            // Optional: print page source for debugging in CI
+            System.out.println("Test failed. Page source:\n" + driver.getPageSource());
+            throw e;
         } finally {
             if (driver != null) {
                 driver.quit();
@@ -73,5 +80,10 @@ public class AddTaskUITest {
         }
     }
 
-
+    @AfterEach
+    public void tearDown() {
+        if (driver != null) {
+            driver.quit();
+        }
+    }
 }
