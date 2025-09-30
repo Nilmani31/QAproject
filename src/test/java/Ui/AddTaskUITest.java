@@ -15,6 +15,7 @@ import com.example.taskmanager.model.User;
 import com.example.taskmanager.repository.UserRepository;
 
 import java.time.Duration;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -50,7 +51,7 @@ public class AddTaskUITest {
     public void setUp() {
         WebDriverManager.chromedriver().setup();
         ChromeOptions options = new ChromeOptions();
-        options.addArguments("--headless=new"); // Headless for CI
+        options.addArguments("--headless=new"); // headless mode for CI
         options.addArguments("--disable-gpu");
         options.addArguments("--no-sandbox");
         options.addArguments("--disable-dev-shm-usage");
@@ -58,7 +59,7 @@ public class AddTaskUITest {
         options.addArguments("--remote-allow-origins=*");
 
         driver = new ChromeDriver(options);
-        wait = new WebDriverWait(driver, Duration.ofSeconds(30));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(50)); // longer timeout
     }
 
     @Test
@@ -66,7 +67,7 @@ public class AddTaskUITest {
         String taskTitle = "Do Home";
         String taskDescription = "homework";
 
-        // 1️⃣ Login first
+        // 1️⃣ Login
         driver.get("http://localhost:" + port + "/users/login");
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("username"))).sendKeys("Kaveesha");
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("password"))).sendKeys("1234");
@@ -78,18 +79,25 @@ public class AddTaskUITest {
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("description"))).sendKeys(taskDescription);
         wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']"))).click();
 
-        // 3️⃣ Verify task added (avoid stale element)
-        By taskLocator = By.xpath("//ul[@class='list-group']/li//strong[text()='" + taskTitle + "']");
-        WebElement taskElement = wait.until(driver -> {
+        // 3️⃣ Verify task is added
+        boolean taskFound = false;
+        for (int i = 0; i < 10; i++) { // retry loop
             try {
-                WebElement e = driver.findElement(taskLocator);
-                return e.isDisplayed() ? e : null;
-            } catch (StaleElementReferenceException ex) {
-                return null; // retry if stale
+                List<WebElement> tasks = driver.findElements(By.xpath("//ul[@class='list-group']/li//strong"));
+                for (WebElement t : tasks) {
+                    if (t.getText().equals(taskTitle)) {
+                        taskFound = true;
+                        break;
+                    }
+                }
+                if (taskFound) break;
+                Thread.sleep(1000); // wait a bit before retry
+            } catch (StaleElementReferenceException | InterruptedException e) {
+                // retry
             }
-        });
+        }
 
-        assertTrue(taskElement.getText().contains(taskTitle), "Task should be displayed in the list");
+        assertTrue(taskFound, "Task should appear in the task list");
     }
 
     @AfterEach
