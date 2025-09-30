@@ -14,9 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.taskmanager.model.User;
 import com.example.taskmanager.repository.UserRepository;
 
-import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -41,7 +38,6 @@ public class AddTaskUITest {
     @BeforeAll
     @Transactional
     public void prepareUser() {
-        // Ensure the test user exists
         if (!userRepository.existsByUsername("Kaveesha")) {
             User user = new User();
             user.setUsername("Kaveesha");
@@ -54,7 +50,7 @@ public class AddTaskUITest {
     public void setUp() {
         WebDriverManager.chromedriver().setup();
         ChromeOptions options = new ChromeOptions();
-        options.addArguments("--headless=new");
+        options.addArguments("--headless=new"); // Headless for CI
         options.addArguments("--disable-gpu");
         options.addArguments("--no-sandbox");
         options.addArguments("--disable-dev-shm-usage");
@@ -62,7 +58,7 @@ public class AddTaskUITest {
         options.addArguments("--remote-allow-origins=*");
 
         driver = new ChromeDriver(options);
-        wait = new WebDriverWait(driver, Duration.ofSeconds(50));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(30));
     }
 
     @Test
@@ -70,47 +66,34 @@ public class AddTaskUITest {
         String taskTitle = "Do Home";
         String taskDescription = "homework";
 
-        try {
-            driver.get("http://localhost:" + port + "/users/login");
+        // 1️⃣ Login first
+        driver.get("http://localhost:" + port + "/users/login");
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("username"))).sendKeys("Kaveesha");
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("password"))).sendKeys("1234");
+        wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']"))).click();
+        wait.until(ExpectedConditions.urlContains("/tasks"));
 
-            // Login
-            wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("username")))
-                    .sendKeys("Kaveesha");
-            wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("password")))
-                    .sendKeys("1234");
-            wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']")))
-                    .click();
+        // 2️⃣ Add task
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("title"))).sendKeys(taskTitle);
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("description"))).sendKeys(taskDescription);
+        wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']"))).click();
 
-            wait.until(ExpectedConditions.urlContains("/tasks"));
-
-            // Add task
-            wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("title"))).sendKeys(taskTitle);
-            wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("description"))).sendKeys(taskDescription);
-            wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']"))).click();
-
-            // Wait for the task to appear and get a fresh element to avoid stale element errors
-            By taskLocator = By.xpath("//ul[@class='list-group']/li//strong[text()='" + taskTitle + "']");
-            WebElement taskElement = wait.until(ExpectedConditions.visibilityOfElementLocated(taskLocator));
-
-            // Verify task is displayed
-            assertTrue(taskElement.getText().contains(taskTitle));
-
-        } catch (Exception e) {
-            // Take a screenshot on failure
+        // 3️⃣ Verify task added (avoid stale element)
+        By taskLocator = By.xpath("//ul[@class='list-group']/li//strong[text()='" + taskTitle + "']");
+        WebElement taskElement = wait.until(driver -> {
             try {
-                File screenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
-                Files.copy(screenshot.toPath(), Path.of("AddTaskUITest_failure.png"));
-            } catch (Exception ex) {
-                ex.printStackTrace();
+                WebElement e = driver.findElement(taskLocator);
+                return e.isDisplayed() ? e : null;
+            } catch (StaleElementReferenceException ex) {
+                return null; // retry if stale
             }
-            throw e;
-        }
+        });
+
+        assertTrue(taskElement.getText().contains(taskTitle), "Task should be displayed in the list");
     }
 
     @AfterEach
     public void tearDown() {
-        if (driver != null) {
-            driver.quit();
-        }
+        if (driver != null) driver.quit();
     }
 }
