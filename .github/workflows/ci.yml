@@ -20,7 +20,7 @@ jobs:
           --health-cmd="mysqladmin ping -h localhost -u taskuser -ppassword123"
           --health-interval=10s
           --health-timeout=5s
-          --health-retries=5
+          --health-retries=10
 
     steps:
       - name: Checkout code
@@ -43,39 +43,27 @@ jobs:
       - name: Build application
         run: mvn clean compile -DskipTests
 
-      - name: Wait for MySQL and setup test data
-        run: |
-          sudo apt-get install -y mysql-client
-          # Wait for MySQL
-          until mysqladmin ping -h 127.0.0.1 -u taskuser -ppassword123 --silent; do
-            echo "Waiting for MySQL..."
-            sleep 5
-          done
-          
-          # Insert test user directly into database
-          mysql -h 127.0.0.1 -u taskuser -ppassword123 taskmanager_db -e "
-            INSERT IGNORE INTO users (username, password) VALUES ('Kaveesha', '$2a$10$tspwtWKvR8vrF17Ikz9Lqu4KvaWvH2YmVlOEOFY4yy0GPP0eRddty');
-          " || echo "User might already exist"
-
       - name: Start Spring Boot application
         run: |
           mvn spring-boot:run &
           echo $! > spring-boot.pid
-          # Wait until login page is reachable
-          for i in {1..60}; do
-          if curl -s http://localhost:8080/users/login > /dev/null; then
-          echo "Spring Boot app is ready!"
-          break
-          fi
           echo "Waiting for Spring Boot app..."
-          sleep 5
+          for i in {1..90}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/users/login || true)
+            if [ "$STATUS" = "200" ]; then
+              echo "Spring Boot app is ready!"
+              break
+            fi
+            sleep 5
           done
 
-
-      - name: Check if app is running
+      - name: Insert test user
         run: |
-          curl -f http://localhost:8080/ || curl -f http://localhost:8080/users/login || echo "Checking application status..."
-          sleep 10
+          sudo apt-get install -y mysql-client
+          mysql -h 127.0.0.1 -u taskuser -ppassword123 taskmanager_db -e "
+            DELETE FROM users WHERE username='Kaveesha';
+            INSERT INTO users (username, password) VALUES ('Kaveesha', '\$2a\$10\$tspwtWKvR8vrF17Ikz9Lqu4KvaWvH2YmVlOEOFY4yy0GPP0eRddty');
+          "
 
       - name: Run ALL tests
         run: mvn test
