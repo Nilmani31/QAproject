@@ -21,6 +21,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+
     steps:
       - uses: actions/checkout@v3
 
@@ -30,7 +31,29 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build with Maven (skip all tests)
+      - name: Install Chrome and ChromeDriver
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+
+      - name: Install Edge
+        run: |
+          curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-archive-keyring.gpg
+          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/repos/edge stable main" | sudo tee /etc/apt/sources.list.d/microsoft-edge.list
+          sudo apt update
+          sudo apt install -y microsoft-edge-stable
+
+      - name: Install EdgeDriver
+        run: |
+          EDGE_VERSION=$(microsoft-edge --version | cut -d' ' -f3)
+          EDGE_DRIVER_VERSION_URL="https://msedgedriver.azureedge.net/LATEST_RELEASE_${EDGE_VERSION%\.*}"
+          EDGE_DRIVER_VERSION=$(curl -s "$EDGE_DRIVER_VERSION_URL")
+          wget "https://msedgedriver.azureedge.net/$EDGE_DRIVER_VERSION/edgedriver_linux64.zip"
+          sudo unzip edgedriver_linux64.zip -d /usr/local/bin/
+          sudo chmod +x /usr/local/bin/msedgedriver
+          rm edgedriver_linux64.zip
+
+      - name: Build with Maven
         run: mvn clean install -DskipTests
 
       - name: Wait for MySQL to be ready
@@ -39,8 +62,9 @@ jobs:
             echo "Waiting for MySQL..."
             sleep 5
           done
-      - name: Run Unit Tests Only (skip UI tests)
-        run: mvn test -DexcludeTags=Ui || true
+
+      - name: Run All Tests
+        run: mvn test
 
       - name: Upload Cucumber Report
         if: always()
