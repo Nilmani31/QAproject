@@ -3,7 +3,7 @@ name: Java CI
 on: [push, pull_request]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
 
     services:
@@ -17,58 +17,29 @@ jobs:
         ports:
           - 3306:3306
         options: >-
-          --health-cmd "mysqladmin ping --silent -u taskuser -ppassword123"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd="mysqladmin ping -h localhost -u taskuser -ppassword123"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
-          distribution: 'temurin'
           java-version: '17'
+          distribution: 'temurin'
 
-      - name: Install Chrome and ChromeDriver
-        uses: browser-actions/setup-chrome@v1
-        with:
-          chrome-version: stable
-
-      - name: Install Edge
+      - name: Install Chrome for UI tests
         run: |
-          curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-archive-keyring.gpg
-          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/repos/edge stable main" | sudo tee /etc/apt/sources.list.d/microsoft-edge.list
-          sudo apt update
-          sudo apt install -y microsoft-edge-stable
+          sudo apt-get update
+          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+          echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
 
-      - name: Install EdgeDriver
+      - name: Build and run ALL tests
         run: |
-          EDGE_VERSION=$(microsoft-edge --version | cut -d' ' -f3)
-          EDGE_DRIVER_VERSION_URL="https://msedgedriver.azureedge.net/LATEST_RELEASE_${EDGE_VERSION%\.*}"
-          EDGE_DRIVER_VERSION=$(curl -s "$EDGE_DRIVER_VERSION_URL")
-          wget "https://msedgedriver.azureedge.net/$EDGE_DRIVER_VERSION/edgedriver_linux64.zip"
-          sudo unzip edgedriver_linux64.zip -d /usr/local/bin/
-          sudo chmod +x /usr/local/bin/msedgedriver
-          rm edgedriver_linux64.zip
-
-      - name: Build with Maven
-        run: mvn clean install -DskipTests
-
-      - name: Wait for MySQL to be ready
-        run: |
-          until mysqladmin ping -h 127.0.0.1 -u taskuser -ppassword123 --silent; do
-            echo "Waiting for MySQL..."
-            sleep 5
-          done
-
-      - name: Run All Tests
-        run: mvn test
-
-      - name: Upload Cucumber Report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: cucumber-report
-          path: target/cucumber-report.html
+          mvn clean test
