@@ -40,6 +40,34 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y google-chrome-stable
 
-      - name: Build and run ALL tests
+      - name: Build application
+        run: mvn clean compile -DskipTests
+
+      - name: Wait for MySQL
         run: |
-          mvn clean test
+          sudo apt-get install -y mysql-client
+          until mysqladmin ping -h 127.0.0.1 -u taskuser -ppassword123 --silent; do
+            echo "Waiting for MySQL..."
+            sleep 5
+          done
+
+      - name: Start Spring Boot application
+        run: |
+          mvn spring-boot:run &
+          echo $! > spring-boot.pid
+          sleep 30
+
+      - name: Check if app is running
+        run: |
+          curl -f http://localhost:8080/ || echo "Application might still be starting..."
+          sleep 10
+
+      - name: Run ALL tests
+        run: mvn test
+
+      - name: Stop Spring Boot application
+        if: always()
+        run: |
+          if [ -f spring-boot.pid ]; then
+            kill $(cat spring-boot.pid) 2>/dev/null || true
+          fi
