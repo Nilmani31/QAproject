@@ -35,7 +35,7 @@ public class AddTaskUITest {
         options.addArguments("--remote-allow-origins=*");
 
         driver = new ChromeDriver(options);
-        wait = new WebDriverWait(driver, Duration.ofSeconds(40)); // longer wait for CI
+        wait = new WebDriverWait(driver, Duration.ofSeconds(40)); // Increase wait for CI
     }
 
     @Test
@@ -43,7 +43,7 @@ public class AddTaskUITest {
         try {
             driver.get("http://localhost:8080/users/login");
 
-            // Wait for login page
+            // Ensure login page fully loaded
             wait.until(ExpectedConditions.urlContains("/users/login"));
 
             // Login
@@ -51,7 +51,7 @@ public class AddTaskUITest {
             wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("password"))).sendKeys("1234");
             wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']"))).click();
 
-            // Wait until redirected to task page
+            // Wait until redirected to tasks page
             wait.until(ExpectedConditions.urlMatches(".*tasks.*"));
 
             // Add a task
@@ -59,24 +59,27 @@ public class AddTaskUITest {
             wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("description"))).sendKeys("homework");
             wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']"))).click();
 
-            // Wait for task text to appear in the task list (more robust for CI)
-            By taskList = By.cssSelector("ul.list-group");
-            wait.until(ExpectedConditions.textToBePresentInElementLocated(taskList, "Do Home"));
+            // Small sleep to ensure JS renders new task
+            Thread.sleep(1000);
 
-            // Verify task is displayed
+            // Wait for task to appear
+            By taskList = By.cssSelector("ul.list-group");
+            wait.until(ExpectedConditions.presenceOfElementLocated(taskList));
+            wait.until(driver -> driver.findElement(taskList).getText().contains("Do Home"));
+
+            // Verify
             assertTrue(driver.findElement(taskList).getText().contains("Do Home"));
 
         } catch (Exception e) {
-            // Print page source for debugging in CI
             System.out.println("Test failed. Page source:\n" + driver.getPageSource());
-            throw e;
-        } finally {
-            if (driver != null) driver.quit();
+            throw new RuntimeException(e);
         }
     }
 
     @AfterEach
     public void tearDown() {
-        if (driver != null) driver.quit();
+        if (driver != null) {
+            driver.quit();
+        }
     }
 }

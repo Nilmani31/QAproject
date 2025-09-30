@@ -38,7 +38,7 @@ jobs:
           wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
           echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
           sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
+          sudo apt-get install -y google-chrome-stable mysql-client
 
       - name: Build application
         run: mvn clean compile -DskipTests
@@ -48,8 +48,8 @@ jobs:
           mvn spring-boot:run &
           echo $! > spring-boot.pid
           echo "Waiting for Spring Boot app..."
-          for i in {1..90}; do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/users/login || true)
+          for i in {1..60}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/tasks || true)
             if [ "$STATUS" = "200" ]; then
               echo "Spring Boot app is ready!"
               break
@@ -59,7 +59,6 @@ jobs:
 
       - name: Insert test user
         run: |
-          sudo apt-get install -y mysql-client
           mysql -h 127.0.0.1 -u taskuser -ppassword123 taskmanager_db -e "
             DELETE FROM users WHERE username='Kaveesha';
             INSERT INTO users (username, password) VALUES ('Kaveesha', '\$2a\$10\$tspwtWKvR8vrF17Ikz9Lqu4KvaWvH2YmVlOEOFY4yy0GPP0eRddty');
