@@ -43,23 +43,29 @@ jobs:
       - name: Build application
         run: mvn clean compile -DskipTests
 
-      - name: Wait for MySQL
+      - name: Wait for MySQL and setup test data
         run: |
           sudo apt-get install -y mysql-client
+          # Wait for MySQL
           until mysqladmin ping -h 127.0.0.1 -u taskuser -ppassword123 --silent; do
             echo "Waiting for MySQL..."
             sleep 5
           done
+          
+          # Insert test user directly into database
+          mysql -h 127.0.0.1 -u taskuser -ppassword123 taskmanager_db -e "
+            INSERT IGNORE INTO users (username, password) VALUES ('Kaveesha', '1234');
+          " || echo "User might already exist"
 
       - name: Start Spring Boot application
         run: |
           mvn spring-boot:run &
           echo $! > spring-boot.pid
-          sleep 30
+          sleep 45
 
       - name: Check if app is running
         run: |
-          curl -f http://localhost:8080/ || echo "Application might still be starting..."
+          curl -f http://localhost:8080/ || curl -f http://localhost:8080/users/login || echo "Checking application status..."
           sleep 10
 
       - name: Run ALL tests
@@ -71,3 +77,4 @@ jobs:
           if [ -f spring-boot.pid ]; then
             kill $(cat spring-boot.pid) 2>/dev/null || true
           fi
+          pkill -f spring-boot || true
