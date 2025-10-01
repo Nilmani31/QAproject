@@ -67,19 +67,19 @@ public class AddTaskUITest {
         String taskTitle = "Do Home";
         String taskDescription = "homework";
 
-        // 1️⃣ Login
+
         driver.get("http://localhost:" + port + "/users/login");
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("username"))).sendKeys("Kaveesha");
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("password"))).sendKeys("1234");
         wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']"))).click();
         wait.until(ExpectedConditions.urlContains("/tasks"));
 
-        // 2️⃣ Add task
+
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("title"))).sendKeys("Buy Milk");
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("description"))).sendKeys("From shop");
         wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']"))).click();
 
-        // 3️⃣ Verify task is added
+
         boolean taskFound = false;
         for (int i = 0; i < 10; i++) { // retry loop
             try {
@@ -91,7 +91,7 @@ public class AddTaskUITest {
                     }
                 }
                 if (taskFound) break;
-                Thread.sleep(1000); // wait a bit before retry
+                Thread.sleep(1500); // wait a bit before retry
             } catch (StaleElementReferenceException | InterruptedException e) {
                 // retry
             }

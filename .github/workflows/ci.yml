@@ -65,7 +65,7 @@ jobs:
           "
 
       - name: Run ALL tests
-        run: mvn test || true
+        run: mvn test
 
       - name: Stop Spring Boot application
         if: always()
