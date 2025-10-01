@@ -75,8 +75,8 @@ public class AddTaskUITest {
         wait.until(ExpectedConditions.urlContains("/tasks"));
 
         // 2️⃣ Add task
-        wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("title"))).sendKeys(taskTitle);
-        wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("description"))).sendKeys(taskDescription);
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("title"))).sendKeys("Buy Milk");
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("description"))).sendKeys("From shop");
         wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']"))).click();
 
         // 3️⃣ Verify task is added
